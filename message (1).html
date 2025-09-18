@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เว็บสั่งอาหาร</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-4">เมนูอาหาร</h1>
+
+    <!-- หมวดหมู่ -->
+    <div class="flex gap-2 mb-4">
+        <button class="category-tab bg-pink-500 text-white px-3 py-1 rounded" onclick="showCategory('appetizer', event)">Appetizer</button>
+        <button class="category-tab bg-gray-200 text-gray-700 px-3 py-1 rounded" onclick="showCategory('main', event)">Main</button>
+        <button class="category-tab bg-gray-200 text-gray-700 px-3 py-1 rounded" onclick="showCategory('dessert', event)">Dessert</button>
+        <button class="category-tab bg-gray-200 text-gray-700 px-3 py-1 rounded" onclick="showCategory('drink', event)">Drink</button>
+        <button onclick="toggleCart()" class="ml-auto bg-yellow-400 px-3 py-1 rounded">ตะกร้า (<span id="cartCount">0</span>)</button>
+    </div>
+
+    <!-- รายการอาหาร -->
+    <div id="menuItems" class="grid grid-cols-2 gap-4"></div>
+
+    <!-- ตะกร้า -->
+    <div id="cartModal" class="hidden fixed top-0 left-0 w-full h-full bg-black/50 flex justify-center items-center">
+        <div class="bg-white p-4 rounded w-80">
+            <h2 class="text-xl font-bold mb-2">ตะกร้าของคุณ</h2>
+            <div id="cartItems" class="mb-4"></div>
+            <div class="flex justify-between mb-4">
+                <span>รวมทั้งหมด:</span>
+                <span id="totalPrice">฿0</span>
+            </div>
+            <button onclick="checkout()" class="w-full bg-pink-500 hover:bg-pink-400 text-white px-4 py-2 rounded">สั่งซื้อเลย</button>
+            <button onclick="toggleCart()" class="w-full mt-2 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">ปิด</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const menu = {
+    appetizer: [
+        { id: 1, name: "สลัดผัก", price: 50 },
+        { id: 2, name: "ปีกไก่ทอด", price: 80 }
+    ],
+    main: [
+        { id: 3, name: "ข้าวมันไก่", price: 60 },
+        { id: 4, name: "ผัดไทย", price: 70 }
+    ],
+    dessert: [
+        { id: 5, name: "เค้กช็อกโกแลต", price: 90 },
+        { id: 6, name: "ไอศกรีม", price: 50 }
+    ],
+    drink: [
+        { id: 7, name: "ชาเย็น", price: 30 },
+        { id: 8, name: "น้ำผลไม้", price: 40 }
+    ]
+};
+
+let cart = [];
+
+function showCategory(category, event) {
+    const menuItems = document.getElementById('menuItems');
+    menuItems.innerHTML = '';
+    menu[category].forEach(item => {
+        const div = document.createElement('div');
+        div.className = "bg-white p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer";
+        div.innerHTML = `
+            <h3 class="text-lg font-semibold text-gray-800">${item.name}</h3>
+            <p class="text-gray-600 mb-2">฿${item.price}</p>
+            <button onclick="addToCart(${item.id}, '${category}')" class="bg-orange-300 hover:bg-orange-400 text-gray-800 px-3 py-1 rounded font-medium">➕ ใส่ตะกร้า</button>
+        `;
+        menuItems.appendChild(div);
+    });
+
+    // Update active tab
+    document.querySelectorAll('.category-tab').forEach(btn => {
+        btn.classList.remove('bg-pink-500', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-700');
+    });
+    event.target.classList.add('bg-pink-500', 'text-white');
+}
+
+function addToCart(id, category) {
+    const item = menu[category].find(i => i.id === id);
+    const existing = cart.find(i => i.id === id);
+    if (existing) existing.quantity++;
+    else cart.push({ ...item, quantity: 1 });
+    updateCart();
+}
+
+function toggleCart() {
+    document.getElementById('cartModal').classList.toggle('hidden');
+}
+
+function updateCart() {
+    const cartItems = document.getElementById('cartItems');
+    cartItems.innerHTML = '';
+    let total = 0;
+    cart.forEach((item, index) => {
+        total += item.price * item.quantity;
+        const div = document.createElement('div');
+        div.className = "flex justify-between items-center mb-2";
+        div.innerHTML = `
+            <span>${item.name} x${item.quantity}</span>
+            <div>
+                <button onclick="changeQuantity(${index}, -1)" class="px-1">-</button>
+                <button onclick="changeQuantity(${index}, 1)" class="px-1">+</button>
+                <button onclick="removeItem(${index})" class="px-1">❌</button>
+                <span>฿${item.price * item.quantity}</span>
+            </div>
+        `;
+        cartItems.appendChild(div);
+    });
+    document.getElementById('cartCount').textContent = cart.length;
+    document.getElementById('totalPrice').textContent = `฿${total}`;
+}
+
+function changeQuantity(index, delta) {
+    cart[index].quantity += delta;
+    if (cart[index].quantity <= 0) cart.splice(index, 1);
+    updateCart();
+}
+
+function removeItem(index) {
+    cart.splice(index, 1);
+    updateCart();
+}
+
+function checkout() {
+    if(cart.length === 0){
+        alert("ตะกร้าว่าง!");
+        return;
+    }
+    alert("ขอบคุณที่สั่งซื้อ! ราคารวม: " + document.getElementById('totalPrice').textContent);
+    cart = [];
+    updateCart();
+    toggleCart();
+}
+
+// Init with appetizer
+showCategory('appetizer', {target: document.querySelector('.category-tab')});
+</script>
+
+</body>
+</html>
